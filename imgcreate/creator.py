@@ -646,7 +646,7 @@ class ImageCreator(object):
         ayum.setup(yum_conf, self._instroot, cacheonly=self.cacheonly)
 
         for repo in kickstart.get_repos(self.ks, repo_urls):
-            (name, baseurl, mirrorlist, proxy, inc, exc, cost, sslverify) = repo
+            (name, baseurl, mirrorlist, proxy, inc, exc, cost, sslverify, gpgkey) = repo
 
             yr = ayum.addRepository(name, baseurl, mirrorlist)
             if inc:
@@ -658,6 +658,10 @@ class ImageCreator(object):
             if cost is not None:
                 yr.cost = cost
             yr.sslverify = sslverify
+            if gpgkey:
+                yr.gpgcheck = True
+                yr.gpgkey = yum.parser.varReplace(gpgkey, ayum.conf.yumvar)
+
         ayum.setup(yum_conf, self._instroot)
 
         if kickstart.exclude_docs(self.ks):
