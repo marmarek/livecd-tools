@@ -178,7 +178,7 @@ class LiveCDYum(yum.YumBase):
         repo.metadata_expire = 0
         repo.mirrorlist_expire = 0
         repo.timestamp_check = 0
-        # disable gpg check???
+        # disable gpg by default, enable it later when gpgkey specified
         repo.gpgcheck = 0
         repo.enable()
         repo.setup(self.conf.cache)
@@ -195,6 +195,31 @@ class LiveCDYum(yum.YumBase):
                     return True
         return False
 
+    def gpgsigcheck(self, pkgs):
+        """Perform GPG signature verification on the given packages,
+        installing keys if possible.
+
+        :param pkgs: a list of package objects to verify the GPG
+           signatures of
+        :return: non-zero if execution should stop due to an error
+        :raises: Will raise :class:`CreatorError` if there's a problem
+        """
+        for po in pkgs:
+            result, errmsg = self.sigCheckPkg(po)
+
+            if result == 0:
+                # Verified ok, or verify not req'd
+                continue
+            elif result == 1:
+                # Keys are provided through kickstart, so treat this as consent
+                # for importing them - the second parameter is callback
+                # acceping key import
+                # This function perform another signature check and raise
+                # YumBaseError if it fails
+                self.getKeyForPackage(po, lambda x, y, z: True)
+            else:
+                # Fatal error
+                raise CreatorError(errmsg)
 
     def runInstall(self):
         os.environ["HOME"] = "/"
@@ -211,7 +236,9 @@ class LiveCDYum(yum.YumBase):
 
         dlpkgs = map(lambda x: x.po, filter(lambda txmbr: txmbr.ts_state in ("i", "u"), self.tsInfo.getMembers()))
         self.downloadPkgs(dlpkgs)
-        # FIXME: sigcheck?
+
+        # Check GPG signatures
+        self.gpgsigcheck(dlpkgs)
 
         self.initActionTs()
         self.populateTs(keepold=0)
