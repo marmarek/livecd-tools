@@ -557,6 +557,7 @@ def get_repos(ks, repo_urls = {}):
         mirrorlist = repo.mirrorlist
         proxy = repo.proxy
         sslverify = not repo.noverifyssl
+        groups = not bool(repo.ignoregroups)
 
         if repo.name in repo_urls:
             baseurl = repo_urls[repo.name]
@@ -564,7 +565,7 @@ def get_repos(ks, repo_urls = {}):
 
         if repos.has_key(repo.name):
             logging.warn("Overriding already specified repo %s" %(repo.name,))
-        repos[repo.name] = (repo.name, baseurl, mirrorlist, proxy, inc, exc, repo.cost, sslverify, repo.gpgkey)
+        repos[repo.name] = (repo.name, baseurl, mirrorlist, proxy, inc, exc, repo.cost, groups, sslverify, repo.gpgkey)
 
     return repos.values()
 
